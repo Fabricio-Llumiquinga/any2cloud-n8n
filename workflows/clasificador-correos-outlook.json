@@ -1,0 +1,122 @@
+{
+  "id": "mynSixYjAAGGuIp4",
+  "name": "Clasificador y Respuesta Automática de Correos - Outlook",
+  "nodes": [
+    {
+      "id": "outlook-trigger-1",
+      "name": "Outlook - Nuevo Correo",
+      "type": "n8n-nodes-base.microsoftOutlookTrigger",
+      "typeVersion": 1,
+      "position": [240, 300],
+      "parameters": {
+        "event": "messageReceived",
+        "output": "fields",
+        "fields": ["subject", "body", "from", "toRecipients", "receivedDateTime", "isRead"],
+        "filters": { "readStatus": "unread" },
+        "options": {}
+      }
+    },
+    {
+      "id": "openai-model-1",
+      "name": "OpenAI GPT-4o-mini",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [560, 480],
+      "parameters": {
+        "model": { "mode": "id", "value": "gpt-4o-mini" },
+        "options": {}
+      }
+    },
+    {
+      "id": "classifier-1",
+      "name": "Clasificar Correo",
+      "type": "@n8n/n8n-nodes-langchain.textClassifier",
+      "typeVersion": 1.1,
+      "position": [560, 300],
+      "parameters": {
+        "inputText": "=Asunto: {{ $json.subject }}\n\nCuerpo: {{ $json.body.content }}",
+        "categories": {
+          "categories": [
+            {
+              "category": "requiere_respuesta",
+              "description": "El correo hace una pregunta directa, solicita información, requiere acción, es de un cliente o proveedor esperando respuesta, o contiene una solicitud explícita"
+            },
+            {
+              "category": "no_requiere_respuesta",
+              "description": "El correo es una notificación automática, newsletter, confirmación de sistema, spam, publicidad, o no requiere ninguna acción del destinatario"
+            }
+          ]
+        },
+        "options": { "fallback": "other" }
+      }
+    },
+    {
+      "id": "openai-reply-1",
+      "name": "Generar Respuesta",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [880, 200],
+      "parameters": {
+        "resource": "text",
+        "operation": "message",
+        "modelId": { "mode": "id", "value": "gpt-4o-mini" },
+        "messages": {
+          "values": [
+            {
+              "role": "system",
+              "content": "Eres un asistente profesional de correo electrónico. Redacta respuestas breves, cordiales y profesionales en el mismo idioma del correo recibido. Máximo 3 oraciones. No uses saludos genéricos como 'Estimado/a'. Ve directo al punto."
+            },
+            {
+              "role": "user",
+              "content": "=Redacta una respuesta breve y profesional para este correo:\n\nDe: {{ $('Outlook - Nuevo Correo').item.json.from.emailAddress.address }}\nAsunto: {{ $('Outlook - Nuevo Correo').item.json.subject }}\nMensaje: {{ $('Outlook - Nuevo Correo').item.json.body.content }}"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "outlook-reply-1",
+      "name": "Responder Correo",
+      "type": "n8n-nodes-base.microsoftOutlook",
+      "typeVersion": 2,
+      "position": [1120, 200],
+      "parameters": {
+        "resource": "message",
+        "operation": "reply",
+        "messageId": "={{ $('Outlook - Nuevo Correo').item.json.id }}",
+        "replyToSenderOnly": true,
+        "additionalFields": {
+          "bodyContent": "={{ $('Generar Respuesta').item.json.message.content }}",
+          "bodyContentType": "Text"
+        }
+      }
+    },
+    {
+      "id": "no-action-1",
+      "name": "Sin Acción",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [880, 420],
+      "parameters": { "notice": "" }
+    }
+  ],
+  "connections": {
+    "Outlook - Nuevo Correo": {
+      "main": [[{ "node": "Clasificar Correo", "type": "main", "index": 0 }]]
+    },
+    "OpenAI GPT-4o-mini": {
+      "ai_languageModel": [[{ "node": "Clasificar Correo", "type": "ai_languageModel", "index": 0 }]]
+    },
+    "Clasificar Correo": {
+      "main": [
+        [{ "node": "Generar Respuesta", "type": "main", "index": 0 }],
+        [{ "node": "Sin Acción", "type": "main", "index": 0 }]
+      ]
+    },
+    "Generar Respuesta": {
+      "main": [[{ "node": "Responder Correo", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": { "executionOrder": "v1" }
+}

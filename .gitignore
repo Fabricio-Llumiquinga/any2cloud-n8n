@@ -1,0 +1,27 @@
+# Repositorios clonados (se instalan con setup.sh)
+n8n-mcp/
+n8n-skills/
+
+# Credenciales — NUNCA commitear
+.kiro/settings/mcp.json
+.env
+.env.local
+
+# Skills generadas por setup.sh
+.kiro/skills/
+
+# OS / IDE
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+
+# Node
+node_modules/
+*.log
+
+# Temporales
+tmp/
+*.tmp
+*.db
