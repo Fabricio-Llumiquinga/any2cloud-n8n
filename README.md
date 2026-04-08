@@ -88,6 +88,22 @@ Kiro buscará nodos, validará la configuración y desplegará el flujo directam
 - `docs/referencia-despliegue.md` — guía rápida de despliegue
 - `docs/comandos.md` — referencia de comandos para Kiro
 
+## Compartir flujos con el equipo
+
+Cuando crees un flujo nuevo, guarda el JSON en `workflows/` y haz push:
+
+```bash
+git add workflows/mi-nuevo-flujo.json
+git commit -m "feat: flujo de descripción-breve"
+git push
+```
+
+El resto del equipo lo recibe con:
+
+```bash
+git pull
+```
+
 ## Notas importantes
 
 - El archivo `.kiro/settings/mcp.json` contiene credenciales y **no se versiona**
